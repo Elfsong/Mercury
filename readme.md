@@ -1,0 +1,3 @@
+# Mercury 🪐
+
+ Welcome to Mercury!
