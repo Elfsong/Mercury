@@ -3,6 +3,7 @@
 import io
 import os
 import time
+import json
 import signal
 import tempfile
 import platform
@@ -157,7 +158,7 @@ class Sandbox(object):
         sys.modules['tkinter'] = None
              
     @staticmethod
-    def unsafe_execute_v2(solution_code, convert_offline, evaluate_offline, entry_point, test_cases, timeout: float, result: List):
+    def unsafe_execute(sample, result):
         with Sandbox.create_tempdir():
 
             # These system calls are needed when cleaning up tempdir.
@@ -203,22 +204,22 @@ class Sandbox(object):
                 
                 total, passed = 0, 0
                 with Sandbox.swallow_io():
-                    with Sandbox.time_limit(timeout):
+                    with Sandbox.time_limit(sample['timeout']):
                         try:
-                            exec(solution_code, namespace)
+                            exec(sample['solution'], namespace)
                             exec(f"solution=Solution()", namespace)
                             
-                            exec(convert_offline, namespace)
-                            exec(evaluate_offline, namespace)
+                            exec(sample['convert_offline'], namespace)
+                            exec(sample['evaluate_offline'], namespace)
                         except Exception as e:
                             print(f"code loading problem: {e}")
                             
                         try:
-                            for test_case in test_cases:
+                            for test_case in sample['test_cases']:
                                 namespace['inputs'] = test_case['input']
                                 namespace['expected'] = test_case['expected']
                                 exec("inputs, expected = convert_offline((inputs, expected))", namespace)
-                                exec(f"outputs = solution.{entry_point}(*inputs)", namespace)
+                                exec(f"outputs = solution.{sample['entry_point']}(*inputs)", namespace)
                                 exec(f"passed = evaluate_offline(inputs, outputs, expected)", namespace)
                                 passed += (1 if namespace['passed'] else 0)
                                 total += 1
@@ -240,21 +241,18 @@ class Sandbox(object):
             os.chdir = chdir
     
     @staticmethod
-    def run_sample(solution_code, convert_offline, evaluate_offline, entry_point, test_cases, timeout: float, completion_id: Optional[int] = None) -> Dict:
+    def run_sample(sample) -> Dict:
         """
-        Evaluates the functional correctness of a completion by running the test
-        suite provided in the problem. 
+        Evaluates the functional correctness of a completion by running the test suite provided in the problem. 
+        """
 
-        :param completion_id: an optional completion ID so we can match
-            the results later even if execution finishes asynchronously.
-        """
         with Manager() as manager:
             result = manager.list()
 
             start_time = time.time()
-            p = Process(target=Sandbox.unsafe_execute_v2, args=(solution_code, convert_offline, evaluate_offline, entry_point, test_cases, timeout, result))
+            p = Process(target=Sandbox.unsafe_execute, args=(sample, result))
             p.start()
-            p.join(timeout=timeout+1)
+            p.join(timeout=sample['timeout']+1)
             if p.is_alive():
                 p.kill()
             end_time = time.time()
@@ -262,32 +260,23 @@ class Sandbox(object):
             if not result:
                 result.append("timed out")
             
-            return dict(result=result[0], runtime=end_time-start_time)
+            return dict(result=result[0], runtime=end_time-start_time, index=sample['solution_index'])
 
     @staticmethod
-    def run_samples(samples, n_workers = 4, timeout = 30.0):
+    def run_samples(samples, n_workers=4):
         with ThreadPoolExecutor(max_workers=n_workers) as executor:
-            futures = []
-            completion_id = Counter()
-            n_samples = 0
-            results = defaultdict(list)
-
-            for sample in tqdm(samples, desc='Running samples'):
-                task_id = sample["task_id"]
-                completion = sample["completion"]
-                problem = sample["problem"]
+            futures, results = list(), list()
                 
-                args = (problem, completion, timeout, completion_id[task_id])
-                
+            for sample in samples:
+                args = (sample,)
                 future = executor.submit(Sandbox.run_sample, *args)
                 futures.append(future)
-                completion_id[task_id] += 1
                 n_samples += 1
-
+            
             for future in tqdm(as_completed(futures), total=len(futures), desc='Reading futures'):
                 result = future.result()
-                results[result["task_id"]].append((result["completion_id"], result))
+                results.append(result)
         
-        return results, n_samples
+        return results
     
     
