@@ -2,13 +2,12 @@
 
 import io
 import os
-import re
+import time
+import json
 import signal
-import requests
 import tempfile
 import platform
 import contextlib
-import subprocess
 import faulthandler
 from tqdm import tqdm
 from collections import defaultdict, Counter
@@ -22,11 +21,9 @@ class TimeoutException(Exception):
     """ Raise for TimeoutException """
     pass
 
-
 # Redirect stdin
-class redirect_stdin(contextlib._RedirectStream):
+class RedirectStdin(contextlib._RedirectStream):
     _stream = 'stdin'
-    
     
 # WriteOnly IO
 class WriteOnlyStringIO(io.StringIO):
@@ -45,7 +42,6 @@ class WriteOnlyStringIO(io.StringIO):
         """ Returns True if the IO object can be read. """
         return False
     
-# Sandbox
 class Sandbox(object):
     @staticmethod
     @contextlib.contextmanager
@@ -66,7 +62,7 @@ class Sandbox(object):
         stream = WriteOnlyStringIO()
         with contextlib.redirect_stdout(stream):
             with contextlib.redirect_stderr(stream):
-                with redirect_stdin(stream):
+                with RedirectStdin(stream):
                     yield
 
     @staticmethod
@@ -160,9 +156,9 @@ class Sandbox(object):
         sys.modules['resource'] = None
         sys.modules['psutil'] = None
         sys.modules['tkinter'] = None
-
+             
     @staticmethod
-    def unsafe_execute(problem: Dict[str, Any], completion: str, timeout: float, result: List):
+    def unsafe_execute(sample, result):
         with Sandbox.create_tempdir():
 
             # These system calls are needed when cleaning up tempdir.
@@ -175,19 +171,65 @@ class Sandbox(object):
             # Disable functionalities that can make destructive changes to the test.
             Sandbox.reliability_guard()
 
-            # Construct the check program and run it.
-            check_program = (
-                problem["prompt"] + completion + "\n" +
-                problem["test"] + "\n" +
-                f"check({problem['entry_point']})"
-            )
-
             try:
-                exec_globals = {}
+                # Global Namespace
+                namespace = {}
+                exec("import re", namespace)
+                exec("import itertools", namespace)
+                exec("import collections", namespace)
+                exec("import heapq", namespace)
+                exec("import bisect", namespace)
+                exec("import string", namespace)
+                exec("import sys", namespace)
+                exec("import lctk", namespace)
+                exec("import functools", namespace)
+                exec("import math", namespace)
+                exec("import copy", namespace)
+                exec("import heapq", namespace)
+                exec("import sortedcontainers", namespace)
+
+                exec("from math import floor, ceil, factorial, sqrt, inf", namespace)
+                exec("from sys import maxsize, stdin", namespace)
+                exec("from bisect import bisect_left, bisect_right", namespace)
+                exec("from itertools import permutations, zip_longest", namespace)
+                exec("from heapq import heappush, heappop, heapify", namespace)
+                exec("from collections import deque, defaultdict, OrderedDict", namespace)
+                exec("from typing import List, Optional, Tuple", namespace)
+                exec("from functools import lru_cache, cache", namespace)
+                
+                exec("class ListNode(object):\n\tdef __init__(self, val=0, next=None):\n\t\tself.val = val\n\t\tself.next = next", namespace)
+                exec("class TreeNode(object):\n\tdef __init__(self, val=0, left=None, right=None):\n\t\tself.val = val\n\t\tself.left = left\n\t\tself.right = right", namespace)
+                
+                exec("def print(*args):pass", namespace)
+                
+                total, passed = 0, 0
                 with Sandbox.swallow_io():
-                    with Sandbox.time_limit(timeout):
-                        exec(check_program, exec_globals)
-                result.append("passed")
+                    with Sandbox.time_limit(sample['timeout']):
+                        try:
+                            exec(sample['solution'], namespace)
+                            exec(f"solution=Solution()", namespace)
+                            
+                            exec(sample['convert_offline'], namespace)
+                            exec(sample['evaluate_offline'], namespace)
+                        except Exception as e:
+                            print(f"code loading problem: {e}")
+                            
+                        try:
+                            for test_case in sample['test_cases']:
+                                namespace['inputs'] = test_case['input']
+                                namespace['expected'] = test_case['expected']
+                                exec("inputs, expected = convert_offline((inputs, expected))", namespace)
+                                exec(f"outputs = solution.{sample['entry_point']}(*inputs)", namespace)
+                                exec(f"passed = evaluate_offline(inputs, outputs, expected)", namespace)
+                                passed += (1 if namespace['passed'] else 0)
+                                total += 1
+                        except Exception as e:
+                            print(f"code evaluation problem: {e}")
+                            
+                if total == passed:
+                    result.append("passed")
+                else:
+                    result.append("failed")
             except TimeoutException:
                 result.append("timed out")
             except BaseException as e:
@@ -197,150 +239,44 @@ class Sandbox(object):
             shutil.rmtree = rmtree
             os.rmdir = rmdir
             os.chdir = chdir
-
+    
     @staticmethod
-    def check_correctness(problem: Dict, completion: str, timeout: float, completion_id: Optional[int] = None) -> Dict:
+    def run_sample(sample) -> Dict:
         """
-        Evaluates the functional correctness of a completion by running the test
-        suite provided in the problem. 
+        Evaluates the functional correctness of a completion by running the test suite provided in the problem. 
+        """
 
-        :param completion_id: an optional completion ID so we can match
-            the results later even if execution finishes asynchronously.
-        """
         with Manager() as manager:
             result = manager.list()
 
-            p = Process(target=Sandbox.unsafe_execute, args=(problem, completion, timeout, result))
+            start_time = time.time()
+            p = Process(target=Sandbox.unsafe_execute, args=(sample, result))
             p.start()
-            p.join(timeout=timeout + 1)
-            if p.is_alive(): p.kill()
+            p.join(timeout=sample['timeout']+1)
+            if p.is_alive():
+                p.kill()
+            end_time = time.time()
 
             if not result:
                 result.append("timed out")
-
-            return dict(
-                task_id = problem["task_id"],
-                passed = result[0] == "passed",
-                result = result[0],
-                completion_id = completion_id,
-            )
+            
+            return dict(result=result[0], runtime=end_time-start_time, index=sample['solution_index'])
 
     @staticmethod
-    def run_samples(samples, n_workers = 4, timeout = 10.0):
+    def run_samples(samples, n_workers=4):
         with ThreadPoolExecutor(max_workers=n_workers) as executor:
-            futures = []
-            completion_id = Counter()
-            n_samples = 0
-            results = defaultdict(list)
-
-            for sample in tqdm(samples, desc='Running samples'):
-                task_id = sample["task_id"]
-                completion = sample["completion"]
-                problem = sample["problem"]
-                args = (problem, completion, timeout, completion_id[task_id])
-                future = executor.submit(Sandbox.check_correctness, *args)
+            futures, results = list(), list()
+                
+            for sample in samples:
+                args = (sample,)
+                future = executor.submit(Sandbox.run_sample, *args)
                 futures.append(future)
-                completion_id[task_id] += 1
                 n_samples += 1
-
+            
             for future in tqdm(as_completed(futures), total=len(futures), desc='Reading futures'):
                 result = future.result()
-                results[result["task_id"]].append((result["completion_id"], result))
+                results.append(result)
         
-        return results, n_samples
+        return results
     
-# OJ
-class OnlineJudge(object):
-    def __init__(self, language="python") -> None:
-        self.language = language
-        self.solution_dir = f"../LeetCode-Solutions/{self.language}"
-        self.leetcode_code_dir = "/home/nus_ids_user3/.leetcode/code"
-        self.leetcode_map = self.get_leetcode_map()
     
-    @staticmethod
-    def get_leetcode_map():
-        url = "https://leetcode.com/api/problems/all/"
-        payload = {}
-        headers = {
-            'authority': 'leetcode.cn',
-            'accept': '*/*',
-            'accept-language': 'en-GB,en-US;q=0.9,en;q=0.8,zh-CN;q=0.7,zh-HK;q=0.6,zh-TW;q=0.5,zh;q=0.4',
-            'content-type': 'application/json',
-            'cookie': '_gid=GA1.2.1098388302.1701430581; gr_user_id=7410146c-e5bc-4739-a7c8-40cb0e580219; a2873925c34ecbd2_gr_session_id=5c028fe5-e819-4177-bc61-685d662a8ea3; a2873925c34ecbd2_gr_session_id_sent_vst=5c028fe5-e819-4177-bc61-685d662a8ea3; Hm_lvt_f0faad39bcf8471e3ab3ef70125152c3=1701430581; _bl_uid=Rtlq0pdemvUjdwuU0mna4wefs90p; csrftoken=AZRVgBFAYbZ8j6ud6Er7hfSUYBoaMMiZyImW25xy9HYJ7Kluvhok6RKzjAofXb3H; LEETCODE_SESSION=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJfYXV0aF91c2VyX2lkIjoiMTgwMDQyMyIsIl9hdXRoX3VzZXJfYmFja2VuZCI6ImRqYW5nby5jb250cmliLmF1dGguYmFja2VuZHMuTW9kZWxCYWNrZW5kIiwiX2F1dGhfdXNlcl9oYXNoIjoiYjg1YTc3ZmYxMDgxNTAwMzg3NzY1YzE3ZGQ0M2I5YTEyYTNhOWYxNWI4YmRhNDVjNjc1ZjFiYmExNGU1YzFmNyIsImlkIjoxODAwNDIzLCJlbWFpbCI6ImR1bWluZ3poZUAxMjYuY29tIiwidXNlcm5hbWUiOiJlbGZzb25nLXYiLCJ1c2VyX3NsdWciOiJlbGZzb25nLXYiLCJhdmF0YXIiOiJodHRwczovL2Fzc2V0cy5sZWV0Y29kZS5jbi9hbGl5dW4tbGMtdXBsb2FkL3VzZXJzL2VsZnNvbmctdi9hdmF0YXJfMTYwMDU0MTMyNy5wbmciLCJwaG9uZV92ZXJpZmllZCI6dHJ1ZSwiX3RpbWVzdGFtcCI6MTcwMTQzMDYzNy4yMjI4ODYsImV4cGlyZWRfdGltZV8iOjE3MDM5NjI4MDAsInZlcnNpb25fa2V5XyI6Mn0.xj1NZG6DUHjo12TmwApzDnzbTIS33WSfKWBAy_UkCJg; a2873925c34ecbd2_gr_last_sent_sid_with_cs1=5c028fe5-e819-4177-bc61-685d662a8ea3; a2873925c34ecbd2_gr_last_sent_cs1=elfsong-v; _ga=GA1.1.695723023.1701430580; Hm_lpvt_f0faad39bcf8471e3ab3ef70125152c3=1701430639; a2873925c34ecbd2_gr_cs1=elfsong-v; _ga_PDVPZYN3CW=GS1.1.1701430580.1.1.1701431322.52.0.0; LEETCODE_SESSION=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.e30.KpufdHIo8CeGduwC5DCQoba8bmWCjJ9mUTYQ4npFdlk; csrftoken=AZRVgBFAYbZ8j6ud6Er7hfSUYBoaMMiZyImW25xy9HYJ7Kluvhok6RKzjAofXb3H',
-            'referer': 'https://leetcode.cn/problems/two-sum/submissions/486127358/',
-            'sec-ch-ua': '"Google Chrome";v="119", "Chromium";v="119", "Not?A_Brand";v="24"',
-            'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-platform': '"macOS"',
-            'sec-fetch-dest': 'empty',
-            'sec-fetch-mode': 'cors',
-            'sec-fetch-site': 'same-origin',
-            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
-            'x-csrftoken': 'AZRVgBFAYbZ8j6ud6Er7hfSUYBoaMMiZyImW25xy9HYJ7Kluvhok6RKzjAofXb3H'
-        }
-
-        response = requests.request("GET", url, headers=headers, data=payload)
-        questions = response.json()
-        question_dict = dict()
-        for question in questions["stat_status_pairs"]:
-            question_dict[question["stat"]["question__title_slug"]] = question
-            
-        return question_dict
-    
-    @staticmethod
-    def remove_ansi(text):
-        reaesc = re.compile(r'\x1b[^m]*m')
-        new_text = reaesc.sub('', text)
-        return new_text
-
-    def execute(self, slug_name, solution, timeout=10):
-        # Get question id
-        question_id = self.leetcode_map[slug_name]['stat']['frontend_question_id']
-        
-        # Copy the solution to leetcode dir
-        with open(f"{self.leetcode_code_dir}/{question_id}.{slug_name}.py", "w+") as solution_f:
-            solution_f.write(solution)
-            
-        # Submit the solution
-        with subprocess.Popen(['leetcode', 'exec', str(question_id)], stdout=subprocess.PIPE, encoding='utf-8') as process:
-            process.wait(timeout=timeout)  # Returns only code: 0
-            outs, errs = process.communicate(timeout=timeout)
-            
-        # Parse Response
-        outs = OnlineJudge.remove_ansi(outs)
-        outs = outs.split("\n")        
-        if "on the run" in outs[1]:
-            outs = outs[4:]
-        
-        result = {
-            'status': outs[1],
-            'runtime': None,
-            'runtime_precentage': None,
-            'memory': None,
-            'memory_precentage': None,
-            
-        }
-
-        if "Success" in result['status']:
-            rs, ms = outs[3].split(" "), outs[5].split(" ")
-            result['runtime'] = rs[1]
-            result['runtime_precentage'] = rs[5]
-            result['memory'] = ms[2]
-            result['memory_precentage'] = ms[6]
-                    
-        return result
-    
-    def test(self, slug_name, test_cases, timeout=10):
-        # Get question id
-        question_id = self.leetcode_map[slug_name]['stat']['frontend_question_id']
-        
-        # Copy the test cases to leetcode dir
-        with open(f"{self.leetcode_code_dir}/{question_id}.{slug_name}.tests.dat", "a") as case_f:
-            for line in test_cases:
-                case_f.write(str(line) + '\n')
-            
-        # Test these cases
-        with subprocess.Popen(['leetcode', 'test', str(question_id)], stdout=subprocess.PIPE, encoding='utf-8') as process:
-            process.wait(timeout=timeout)  # Returns only code: 0
-            outs, errs = process.communicate(timeout=timeout)
-            
-        return outs, errs
