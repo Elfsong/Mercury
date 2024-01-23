@@ -203,37 +203,40 @@ class Sandbox(object):
                 exec("def print(*args):pass", namespace)
                 
                 total, passed = 0, 0
+                runtime = 0
                 with Sandbox.swallow_io():
-                    with Sandbox.time_limit(sample['timeout']):
+                    with Sandbox.time_limit(sample['timeout']):                        
                         try:
                             exec(sample['solution'], namespace)
                             exec(f"solution=Solution()", namespace)
-                            
                             exec(sample['convert_offline'], namespace)
                             exec(sample['evaluate_offline'], namespace)
                         except Exception as e:
-                            print(f"code loading problem: {e}")
+                            result.append({"status": "failed@load", "runtime": runtime})
                             
                         try:
+                            start_time = time.time()
                             for test_case in sample['test_cases']:
                                 namespace['inputs'] = test_case['input']
                                 namespace['expected'] = test_case['expected']
                                 exec("inputs, expected = convert_offline((inputs, expected))", namespace)
                                 exec(f"outputs = solution.{sample['entry_point']}(*inputs)", namespace)
                                 exec(f"passed = evaluate_offline(inputs, outputs, expected)", namespace)
-                                passed += (1 if namespace['passed'] else 0)
                                 total += 1
+                                passed += (1 if namespace['passed'] else 0)
+                            end_time = time.time()
+                            runtime = end_time-start_time
                         except Exception as e:
-                            print(f"code evaluation problem: {e}")
-                            
+                            result.append({"status": "failed@eval", "runtime": runtime})
+                
                 if total == passed:
-                    result.append("passed")
+                    result.append({"status": "passed", "runtime": runtime})
                 else:
-                    result.append("failed")
+                    result.append({"status": "failed@cases", "runtime": runtime})
             except TimeoutException:
-                result.append("timed out")
+                result.append({"status": "timeout", "runtime": runtime})
             except BaseException as e:
-                result.append(f"failed: {e}")
+                result.append({"status": "failed@error", "runtime": runtime})
 
             # Needed for cleaning up.
             shutil.rmtree = rmtree
@@ -249,18 +252,16 @@ class Sandbox(object):
         with Manager() as manager:
             result = manager.list()
 
-            start_time = time.time()
             p = Process(target=Sandbox.unsafe_execute, args=(sample, result))
             p.start()
             p.join(timeout=sample['timeout']+1)
             if p.is_alive():
                 p.kill()
-            end_time = time.time()
 
             if not result:
-                result.append("timed out")
+                result.append({"status": "timeout", "runtime": sample['timeout']})
             
-            return dict(result=result[0], runtime=end_time-start_time, index=sample['solution_index'])
+            return dict(result=result[0]['status'], runtime=result[0]['runtime'], index=sample['solution_index'])
 
     @staticmethod
     def run_samples(samples, n_workers=4):
