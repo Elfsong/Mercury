@@ -458,7 +458,9 @@ class DistributeWiseEvaluator(Evaluator):
                 
                 # Calculate Beyond
                 runtime = result['runtime'] if result['result'] == "passed" else float('inf')                    
-                beyond = max_runtime - runtime if max_runtime - runtime > 0 else 0
+                beyond = max_runtime - runtime
+                beyond = min(beyond, 1)
+                beyond = max(beyond, 0)
                 beyond_precent = beyond / (max_runtime - min_runtime)
                 
                 eval_results[slug_name] += [{
