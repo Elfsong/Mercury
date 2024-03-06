@@ -6,6 +6,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 os.environ["TOKENIZERS_PARALLELISM"] = 'false'
 os.environ['HF_HOME'] = '/raid/hpc/mingzhe/transformers_cache'
 
+
 import json
 import gzip
 import torch
@@ -16,7 +17,7 @@ import numpy as np
 
 from tqdm import tqdm
 from openai import OpenAI
-from sandbox import Sandbox
+from src.sandbox import Sandbox
 from datasets import load_dataset
 from collections import defaultdict
 from typing import Iterable, Dict, List, Union
@@ -31,6 +32,8 @@ class Evaluator(object):
         self.openai_key = os.environ.get('OPENAI_API_KEY')
         if self.openai_key:
             self.openai_client = OpenAI(api_key=self.openai_key)
+        else:
+            raise Exception('Unknown OpenAI Key')
     
     @staticmethod
     def write_jsonl(filename: str, data: Iterable[Dict], append: bool = False):
@@ -349,7 +352,7 @@ class DistributeWiseEvaluator(Evaluator):
         self.do_generate = do_generate
         
         # Load dataset
-        self.dataset = load_dataset("Elfsong/Caduceus_v8")
+        self.dataset = load_dataset("Elfsong/Mercury")
         
         if self.do_generate and self.model_name_or_path not in ['openai/gpt-4-1106-preview', 'openai/gpt-3.5-turbo-1106']:
             # BitsAndBytes config
@@ -364,7 +367,7 @@ class DistributeWiseEvaluator(Evaluator):
             self.tokenizer.pad_token = self.tokenizer.eos_token
             self.model = AutoModelForCausalLM.from_pretrained(
                 self.model_name_or_path,
-                cache_dir="/raid/hpc/mingzhe/transformers_cache",
+                cache_dir=os.environ.get('HF_HOME'),
                 quantization_config=bnb_config,
                 trust_remote_code=True,
                 device_map = "auto",
@@ -465,24 +468,26 @@ class DistributeWiseEvaluator(Evaluator):
                 
                 eval_results[slug_name] += [{
                     "slug_name": slug_name,
-                    "result":  result,
+                    "status":  result,
                     "solution": solution['completion'],
                     "runtimes": runtimes,
                     "beyond_p": beyond_precent,
                 }]
         
-        # Pass@1
-        total, passed = 0, 0
+        # Score
+        total, passed, beyond = 0, 0, 0
         for slug_name in eval_results:
             cases = eval_results[slug_name]
             total += 1
-            if cases[0]['result']['result'] == "passed":
+            beyond += cases[0]['beyond_p']
+            if cases[0]['status']['result'] == "passed":
                 passed += 1
         passed_score = passed / total
-        print(f"Passed@1: {passed_score}")
+        beyond_score = beyond / total
+        print(f"Pass@1: {passed_score} Beyond@1: {beyond_score}")
                 
         # Dump samples
-        with open(f'./data/{self.model_name_or_path}_eval_new.json', 'w') as sample_f:
+        with open(f'./data/{self.model_name_or_path}_eval.json', 'w') as sample_f:
             sample_f.write(json.dumps(eval_results))
 
         return samples
