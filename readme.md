@@ -30,12 +30,12 @@ evaluator.evaluate(num_samples_per_task=1)
 
 # Leaderboard (WIP 🚧)
 
-| Model Name                | Pass@1 | Beyond@1 |
-| ------------------------- | ------ | -------- |
-| openai/gpt-3.5-turbo-1106 | 0.8711 | 0.7214   |
-| openai/gpt-4-1106-preview | 0.7930 | 0.6555   |
-| deepseek-coder-6.7b       | 0.6875 | 0.5492   |
-| deepseek-coder-33b        | 0.7734 | 0.6951   |
-| CodeLlama-7b              | 0.3672 | 0.2798   |
-| CodeLlama-13b             | 0.4023 | 0.3091   |
-| CodeLlama-34b             | 0.5703 | 0.4505   |
+| Model Name           | Pass@1 | Beyond@1 |
+| -------------------- | ------ | -------- |
+| gpt-3.5-turbo-1106   | 0.8711 | 0.7214   |
+| gpt-4-1106-preview   | 0.7930 | 0.6555   |
+| deepseek-coder-6.7b  | 0.6875 | 0.5492   |
+| deepseek-coder-33b   | 0.7734 | 0.6951   |
+| CodeLlama-7b         | 0.3672 | 0.2798   |
+| CodeLlama-13b        | 0.4023 | 0.3091   |
+| CodeLlama-34b        | 0.5703 | 0.4505   |
