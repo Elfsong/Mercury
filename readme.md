@@ -36,6 +36,6 @@ evaluator.evaluate(num_samples_per_task=1)
 | openai/gpt-4-1106-preview | 0.7930 | 0.6555   |
 | deepseek-coder-6.7b       | 0.6875 | 0.5492   |
 | deepseek-coder-33b        | 0.7734 | 0.6951   |
-| CodeLlama-7b              | PH     | PH       |
+| CodeLlama-7b              | 0.3672 | 0.2798   |
 | CodeLlama-13b             | PH     | PH       |
 | CodeLlama-34b             | PH     | PH       |
