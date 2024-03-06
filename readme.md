@@ -27,3 +27,11 @@ evaluator.generate(num_samples_per_task=1)
 # Evaluate code samples using the Mercury benchmark
 evaluator.evaluate(num_samples_per_task=1)
 ```
+
+# Leaderboard (WIP 🚧)
+
+| Model Name  | Pass@1 | Beyond@1 |
+| ----------- | ------ | -------- |
+| PH          | PH     | PH       |
+| PH          | PH     | PH       |
+| PH          | PH     | PH       |
