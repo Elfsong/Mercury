@@ -33,5 +33,9 @@ evaluator.evaluate(num_samples_per_task=1)
 | Model Name                | Pass@1 | Beyond@1 |
 | ------------------------- | ------ | -------- |
 | openai/gpt-3.5-turbo-1106 | 0.8711 | 0.7214   |
-| PH                        | PH     | PH       |
-| PH                        | PH     | PH       |
+| openai/gpt-4-1106-preview | 0.7930 | 0.6555   |
+| deepseek-coder-6.7b       | PH     | PH       |
+| deepseek-coder-33b        | PH     | PH       |
+| CodeLlama-7b              | PH     | PH       |
+| CodeLlama-13b             | PH     | PH       |
+| CodeLlama-34b             | PH     | PH       |
