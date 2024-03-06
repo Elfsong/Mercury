@@ -35,7 +35,7 @@ evaluator.evaluate(num_samples_per_task=1)
 | openai/gpt-3.5-turbo-1106 | 0.8711 | 0.7214   |
 | openai/gpt-4-1106-preview | 0.7930 | 0.6555   |
 | deepseek-coder-6.7b       | 0.6875 | 0.5492   |
-| deepseek-coder-33b        | PH     | PH       |
+| deepseek-coder-33b        | 0.7734 | 0.6284   |
 | CodeLlama-7b              | PH     | PH       |
 | CodeLlama-13b             | PH     | PH       |
 | CodeLlama-34b             | PH     | PH       |
