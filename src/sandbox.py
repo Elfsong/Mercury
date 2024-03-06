@@ -23,6 +23,7 @@ class TimeoutException(Exception):
 
 # Redirect stdin
 class RedirectStdin(contextlib._RedirectStream):
+    """Context manager for temporarily receiving stdin from another source."""
     _stream = 'stdin'
     
 # WriteOnly IO
