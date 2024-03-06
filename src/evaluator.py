@@ -264,7 +264,7 @@ class PairWiseEvaluator(Evaluator):
             self.tokenizer.pad_token = self.tokenizer.eos_token
             self.model = AutoModelForCausalLM.from_pretrained(
                 self.model_name_or_path,
-                cache_dir="/raid/hpc/mingzhe/transformers_cache",
+                cache_dir=os.environ.get('HF_HOME'),
                 quantization_config=bnb_config,
                 trust_remote_code=True,
                 device_map = "auto",
