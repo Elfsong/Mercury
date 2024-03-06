@@ -30,8 +30,8 @@ evaluator.evaluate(num_samples_per_task=1)
 
 # Leaderboard (WIP 🚧)
 
-| Model Name  | Pass@1 | Beyond@1 |
-| ----------- | ------ | -------- |
-| PH          | PH     | PH       |
-| PH          | PH     | PH       |
-| PH          | PH     | PH       |
+| Model Name                | Pass@1 | Beyond@1 |
+| ------------------------- | ------ | -------- |
+| openai/gpt-3.5-turbo-1106 | 0.8711 | 0.7214   |
+| PH                        | PH     | PH       |
+| PH                        | PH     | PH       |
