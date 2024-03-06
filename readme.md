@@ -38,4 +38,4 @@ evaluator.evaluate(num_samples_per_task=1)
 | deepseek-coder-33b        | 0.7734 | 0.6951   |
 | CodeLlama-7b              | 0.3672 | 0.2798   |
 | CodeLlama-13b             | 0.4023 | 0.3091   |
-| CodeLlama-34b             | PH     | PH       |
+| CodeLlama-34b             | 0.5703 | 0.4505   |
