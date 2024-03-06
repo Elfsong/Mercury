@@ -12,7 +12,7 @@ The dataset is available at: https://huggingface.co/datasets/Elfsong/Mercury
 
 ## How to use Mercury
 ```python
-# set up OpenAI key if you are going to evaluate it
+# set up OpenAI key if you are going to evaluate it (optional)
 import os
 os.environ["OPENAI_API_KEY"] = 'YOUR_OPENAI_KEY'
 
