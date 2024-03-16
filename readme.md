@@ -6,9 +6,10 @@ Welcome to Mercury: An Efficiency Benchmark for LLM Code Synthesis
 
 * It consists of 1,889 programming tasks covering diverse difficulty levels, along with test case generators that produce unlimited cases for comprehensive evaluation. 
 
-You can find our paper at: https://arxiv.org/abs/2402.07844
+## Important Update
+To ensure the preservation of so-called 'anonymity', the dataset link will no longer be available on this page prior to the formal paper acceptance. Sorry for any inconvenience this may cause. Researchers are encouraged to find the dataset independently.
 
-The dataset is available at: https://huggingface.co/datasets/Elfsong/Mercury
+I learned a big lesson that the meticulous nature of some reviewers is akin to that of 'detectives', taking pride in their ability to unearth authorship through a series of multi-hop reasoning:)
 
 ## How to use Mercury
 ```python
