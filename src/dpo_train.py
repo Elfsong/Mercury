@@ -113,24 +113,25 @@ def get_code_paired(split="train", sanity_check: bool = False):
     data = list()
 
     for question in dataset:
-        content = question['pretty_content'][0]
-        solutions = question['solutions']
-        code_prompt = question['prompt']
-        
-        for pair in list(permutations(solutions, 2) ):
-            a, b = pair
-            a_time = int(a["runtime"][:-2])
-            b_time = int(b["runtime"][:-2])
+        if question['pretty_content']:
+            content = question['pretty_content'][0]
+            solutions = question['solutions']
+            code_prompt = question['prompt']
+            
+            for pair in list(permutations(solutions, 2) ):
+                a, b = pair
+                a_time = int(a["runtime"][:-2])
+                b_time = int(b["runtime"][:-2])
 
-            if b_time - a_time > 15:
-                chosen_code, rejected_code = a["solution"], b["solution"]
-                
-                if (starter in chosen_code) and (starter in rejected_code):                    
-                    data += [{
-                        "prompt": prompt_generate(content, code_prompt),
-                        "chosen": f"{chosen_code}",
-                        "rejected": f"{rejected_code}",
-                    }]
+                if b_time - a_time > 15:
+                    chosen_code, rejected_code = a["solution"], b["solution"]
+                    
+                    if (starter in chosen_code) and (starter in rejected_code):                    
+                        data += [{
+                            "prompt": prompt_generate(content, code_prompt),
+                            "chosen": f"{chosen_code}",
+                            "rejected": f"{rejected_code}",
+                        }]
     
     return Dataset.from_list(data)
 
