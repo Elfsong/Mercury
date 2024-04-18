@@ -2,16 +2,16 @@
 
 # 0. imports
 import os
-os.environ['TRANSFORMERS_CACHE'] = '/mnt/dataDisk1/huggingface_cache'
-
-from dataclasses import dataclass, field
-from typing import Optional
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+os.environ["CUDA_VISIBLE_DEVICES"]="1,2,3,5,6,7"
 
 import torch
 import datasets
-from accelerate import Accelerator
-from peft import AutoPeftModelForCausalLM, LoraConfig
 from tqdm import tqdm
+from typing import Optional
+from accelerate import Accelerator
+from dataclasses import dataclass, field
+from peft import AutoPeftModelForCausalLM, LoraConfig
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, HfArgumentParser, TrainingArguments
 
 from trl import SFTTrainer
@@ -19,22 +19,22 @@ from trl.import_utils import is_xpu_available
 
 @dataclass
 class ScriptArguments:
-    model_name: Optional[str] = field(default="deepseek-ai/deepseek-coder-1.3b-instruct", metadata={"help": "the model name"})
+    model_name: Optional[str] = field(default="bigcode/starcoder2-7b", metadata={"help": "the model name"})
     log_with: Optional[str] = field(default="wandb", metadata={"help": "use 'wandb' to log with wandb"})
 
-    dataset_name: Optional[str] = field(default="Elfsong/leetcode_v4", metadata={"help": "the dataset name"})
+    dataset_name: Optional[str] = field(default="Elfsong/Mercury", metadata={"help": "the dataset name"})
     split: Optional[str] = field(default="train", metadata={"help": "the split to use"})
     size_valid_set: Optional[int] = field(default=300, metadata={"help": "the size of the validation set"})
 
-    seq_length: Optional[int] = field(default=8192, metadata={"help": "the sequence length"})
-    max_steps: Optional[int] = field(default=1000, metadata={"help": "the maximum number of sgd steps"})
-    logging_steps: Optional[int] = field(default=10, metadata={"help": "the logging frequency"})
+    seq_length: Optional[int] = field(default=4096, metadata={"help": "the sequence length"})
+    max_steps: Optional[int] = field(default=800, metadata={"help": "the maximum number of sgd steps"})
+    logging_steps: Optional[int] = field(default=4, metadata={"help": "the logging frequency"})
     save_steps: Optional[int] = field(default=500, metadata={"help": "the saving frequency"})
     
-    per_device_train_batch_size: Optional[int] = field(default=6, metadata={"help": "the per device train batch size"})
+    per_device_train_batch_size: Optional[int] = field(default=2, metadata={"help": "the per device train batch size"})
     per_device_eval_batch_size: Optional[int] = field(default=1, metadata={"help": "the per device eval batch size"})
     gradient_accumulation_steps: Optional[int] = field(default=4, metadata={"help": "the gradient accumulation steps"})
-    gradient_checkpointing: Optional[bool] = field(default=True, metadata={"help": "whether to use gradient checkpointing"})
+    gradient_checkpointing: Optional[bool] = field(default=False, metadata={"help": "whether to use gradient checkpointing"})
     
     group_by_length: Optional[bool] = field(default=False, metadata={"help": "whether to group by length"})
     packing: Optional[bool] = field(default=False, metadata={"help": "whether to use packing for SFTTrainer"})
@@ -49,60 +49,14 @@ class ScriptArguments:
     weight_decay: Optional[float] = field(default=0.05, metadata={"help": "the weight decay"})
     optimizer_type: Optional[str] = field(default="paged_adamw_32bit", metadata={"help": "the optimizer type"})
 
-    output_dir: Optional[str] = field(default="/mnt/dataDisk1/checkpoints/sft", metadata={"help": "the output directory"})
+    output_dir: Optional[str] = field(default="/home/mingzhe/Projects/Mercury/checkpoints", metadata={"help": "the output directory"})
     log_freq: Optional[int] = field(default=1, metadata={"help": "the logging frequency"})
-
 
 parser = HfArgumentParser(ScriptArguments)
 script_args = parser.parse_args_into_dataclasses()[0]
 
 if script_args.group_by_length and script_args.packing:
     raise ValueError("Cannot use both packing and group by length")
-
-
-def print_trainable_parameters(model):
-    """
-    Prints the number of trainable parameters in the model.
-    """
-    trainable_params = 0
-    all_param = 0
-    for _, param in model.named_parameters():
-        all_param += param.numel()
-        if param.requires_grad:
-            trainable_params += param.numel()
-    print(
-        f"trainable params: {trainable_params} || all params: {all_param} || trainable%: {100 * trainable_params / all_param}"
-    )
-
-def dataset_convert(tokenizer, dataset):
-    sft_dataset = list()
-    for instance in dataset:
-        content = instance["pretty_content"]
-        prompt =  instance["prompt"]
-        
-        for solution in instance["solutions"]:
-            code = solution["solution"]
-            if "class Solution" in code:
-                prompt_template = f"<INS>\n{content}\n{prompt}\n<\\INS>\n<CODE>\n{code}\n<\\CODE>"                
-                sft_dataset += [{
-                    "input_ids":tokenizer.encode(prompt_template, add_special_tokens=True, return_tensors="pt"),
-                    "text": prompt_template,
-                }]
-    
-    return datasets.Dataset.from_list(sft_dataset)
-
-def create_datasets(tokenizer, args):
-    dataset = datasets.load_dataset(args.dataset_name)
-    # dataset = dataset.train_test_split(test_size=0.1, seed=None)
-    
-    train_data = dataset["train"]
-    valid_data = dataset["eval"]
-    print(f"Size of the train set: {len(train_data)}. Size of the validation set: {len(valid_data)}")
-    
-    train_dataset = dataset_convert(tokenizer, train_data)
-    valid_dataset = dataset_convert(tokenizer, valid_data)
-    
-    return train_dataset, valid_dataset
     
 bnb_config = BitsAndBytesConfig(
     load_in_4bit=True,
@@ -116,7 +70,6 @@ base_model = AutoModelForCausalLM.from_pretrained(
     device_map={"": Accelerator().local_process_index},
     trust_remote_code=True,
     token=True,
-    cache_dir="/mnt/dataDisk1/huggingface_cache"
 )
 base_model.config.use_cache = False
 
@@ -148,31 +101,74 @@ training_args = TrainingArguments(
     warmup_steps=script_args.num_warmup_steps,
     optim=script_args.optimizer_type,
     bf16=True,
-    remove_unused_columns=False,
+    remove_unused_columns=True,
     run_name="sft_train",
     gradient_checkpointing=script_args.gradient_checkpointing,
 )
 
-train_dataset, eval_dataset = create_datasets(tokenizer, script_args)
-train_dataset = train_dataset.filter(lambda x: len(x["input_ids"]) <= script_args.seq_length)
+dataset = datasets.load_dataset(script_args.dataset_name)
+
+def prompt_generate(question_content, starter_code="", answer=""):
+    examples_json = {
+        "question": "You are given a 0-indexed array of positive integers nums. Find the number of triplets (i, j, k) that meet the following conditions:\n\n0 <= i < j < k < nums.length\nnums[i], nums[j], and nums[k] are pairwise distinct.\n\t\nIn other words, nums[i] != nums[j], nums[i] != nums[k], and nums[j] != nums[k].\n\n\n\nReturn the number of triplets that meet the conditions.\n \nExample 1:\n\nInput: nums = [4,4,2,4,3]\nOutput: 3\nExplanation: The following triplets meet the conditions:\n- (0, 2, 4) because 4 != 2 != 3\n- (1, 2, 4) because 4 != 2 != 3\n- (2, 3, 4) because 2 != 4 != 3\nSince there are 3 triplets, we return 3.\nNote that (2, 0, 4) is not a valid triplet because 2 > 0.\n\nExample 2:\n\nInput: nums = [1,1,1,1,1]\nOutput: 0\nExplanation: No triplets meet the conditions so we return 0.\n\n \nConstraints:\n\n3 <= nums.length <= 100\n1 <= nums[i] <= 1000\n\n",
+        "sample_code": 'class Solution(object):\n    def unequalTriplets(self, nums: List[int]) -> int:\n        """\n\t:type nums: List[int]\n\t:rtype: int\n\t"""\n        \n',
+        "answer": 'class Solution(object):\n    def unequalTriplets(self, nums: List[int]) -> int:\n        """\n\t:type nums: List[int]\n\t:rtype: int\n\t"""\n        \n        ans = 0\n        n = len(a)\n        for i in range(n):\n            for j in range(i + 1, n):\n                for k in range(j + 1, n):\n                    ans += len({a[i], a[j], a[k]}) == 3\n        return ans'
+    }
+
+    def get_example_prompt(example):
+        prompt = ""
+        prompt += "### Question\n"
+        prompt += example["question"]
+        prompt += "\n\n"
+        if starter_code:
+            prompt += "### Code Prompt\n"
+            prompt += example["sample_code"]
+            prompt += "\n\n"
+        prompt += "### Completion\n"
+        prompt += example["answer"]
+        if example["answer"]:
+            prompt += "\n\n"
+        return prompt
+
+    prompt = ""
+    # one-shot generation example
+    # prompt += get_example_prompt(examples_json)
+    # code generation
+    prompt += get_example_prompt({"question": question_content,"sample_code": starter_code,"answer": answer})
+    
+    return prompt
+
+def formatting_prompts_func(examples):
+    output_texts = []
+    for i in range(len(examples["pretty_content"])):
+        if len(examples["pretty_content"][i]) > 0:
+            content = examples["pretty_content"][i][0]
+            starter = examples["prompt"][i]
+            for s in examples["solutions"][i]:
+                solution = s['solution']
+                prompt = prompt_generate(content, starter, solution)
+                output_texts.append(prompt)
+                # output_texts.append(f'{content}\n{solution}')
+    return output_texts
 
 
 trainer = SFTTrainer(
     model=base_model,
-    train_dataset=train_dataset,
-    eval_dataset=eval_dataset,
+    train_dataset=dataset['train'],
+    eval_dataset=dataset['eval'],
     peft_config=peft_config,
-    packing=script_args.packing,
-    dataset_text_field="text",
     max_seq_length=script_args.seq_length,
+    formatting_func=formatting_prompts_func,
     tokenizer=tokenizer,
     args=training_args,
 )
 trainer.train()
-trainer.save_model(script_args.output_dir)
 
-output_dir = os.path.join(script_args.output_dir, "final_checkpoint")
-trainer.model.save_pretrained(output_dir)
+output_dir = os.path.join(script_args.output_dir, f"{script_args.model_name}-sft-final_checkpoint")
+trainer.save_model(output_dir)
+
+# output_dir = os.path.join(script_args.output_dir, f"{script_args.model_name}-final_checkpoint")
+# trainer.model.save_pretrained(output_dir)
 
 # Free memory for merging weights
 del base_model

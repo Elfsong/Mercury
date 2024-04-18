@@ -4,7 +4,7 @@
 import os
 os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 os.environ["TOKENIZERS_PARALLELISM"] = 'false'
-os.environ['HF_HOME'] = '/raid/hpc/mingzhe/transformers_cache'
+os.environ['HF_HOME'] = '/home/mingzhe/hf_cache'
 
 
 import json
@@ -87,6 +87,9 @@ class Evaluator(object):
         elif self.model_name_or_path in ['openai/gpt-4-1106-preview', 'openai/gpt-3.5-turbo-1106']:
             prompt = f"Complete python3 code to solve the following coding problem in the JSON format:{{'completion': '<completion_starts_with_prompt>'}}\nProblem:\n{content}\nPrompt:\n{code_prompt}"
             return prompt
+        elif self.model_name_or_path in ['bigcode/starcoder2-3b']:
+            prompt = f"{content}\n{code_prompt}"
+            return prompt
         else:
             raise NameError(f"Can't find prompt template for [{self.model_name_or_path}]")
         
@@ -102,11 +105,7 @@ class Evaluator(object):
             top_k=40, 
             temperature=0.1
         )
-        completion = self.tokenizer.batch_decode(
-            generate_ids, 
-            skip_special_tokens=True, 
-            clean_up_tokenization_spaces=False
-        )[0]
+        completion = self.tokenizer.batch_decode(generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)[0]
         completion = completion.replace(prompt, "").split("\n\n\n")[0]
 
         return completion
@@ -485,10 +484,7 @@ class DistributeWiseEvaluator(Evaluator):
         passed_score = passed / total
         beyond_score = beyond / total
         print(f"Pass@1: {passed_score} Beyond@1: {beyond_score}")
-                
-        # Dump samples
-        with open(f'./data/{self.model_name_or_path}_eval.json', 'w') as sample_f:
-            sample_f.write(json.dumps(eval_results))
+
 
         return samples
     
