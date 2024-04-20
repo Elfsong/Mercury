@@ -1,11 +1,12 @@
 accelerate  launch --main_process_port 29503  ./src/dpo_train.py    \
-    --model_name deepseek-ai/deepseek-coder-1.3b-base   \
-    --beta 0.1  \
-    --learning_rate 1e-4    \
+    --model_name    checkpoints/sft/deepseek-coder-6.7b-base/sft-final_checkpoint    \
+    --output_dir    checkpoints/dpo/deepseek-coder-6.7b-base    \
+    --beta          0.1  \
+    --learning_rate 2e-4    \
     --max_prompt_length 1024    \
     --max_length    2048    \
     --warmup_steps  100     \
-    --max_steps     600     \
+    --max_steps     300     \
     --save_steps    100     \
-    --per_device_train_batch_size   2   \
-    --gradient_accumulation_steps   4 
+    --per_device_train_batch_size   1   \
+    --gradient_accumulation_steps   4

@@ -3,13 +3,14 @@
 # 0. imports
 import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
-os.environ["CUDA_VISIBLE_DEVICES"]="1,2,3,5,6,7"
+os.environ["CUDA_VISIBLE_DEVICES"]="0,2,3,4,5,6"
 
 import torch
 import datasets
 from tqdm import tqdm
 from typing import Optional
 from accelerate import Accelerator
+from accelerate import PartialState
 from dataclasses import dataclass, field
 from peft import AutoPeftModelForCausalLM, LoraConfig
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, HfArgumentParser, TrainingArguments
@@ -20,6 +21,8 @@ from trl.import_utils import is_xpu_available
 @dataclass
 class ScriptArguments:
     model_name: Optional[str] = field(default="bigcode/starcoder2-7b", metadata={"help": "the model name"})
+    load_in_4bit: Optional[bool] = field(default=True, metadata={"help": "Model 4 bit quant"})
+    
     log_with: Optional[str] = field(default="wandb", metadata={"help": "use 'wandb' to log with wandb"})
 
     dataset_name: Optional[str] = field(default="Elfsong/Mercury", metadata={"help": "the dataset name"})
@@ -29,17 +32,17 @@ class ScriptArguments:
     seq_length: Optional[int] = field(default=4096, metadata={"help": "the sequence length"})
     max_steps: Optional[int] = field(default=800, metadata={"help": "the maximum number of sgd steps"})
     logging_steps: Optional[int] = field(default=4, metadata={"help": "the logging frequency"})
-    save_steps: Optional[int] = field(default=500, metadata={"help": "the saving frequency"})
+    save_steps: Optional[int] = field(default=1000, metadata={"help": "the saving frequency"})
     
     per_device_train_batch_size: Optional[int] = field(default=2, metadata={"help": "the per device train batch size"})
     per_device_eval_batch_size: Optional[int] = field(default=1, metadata={"help": "the per device eval batch size"})
     gradient_accumulation_steps: Optional[int] = field(default=4, metadata={"help": "the gradient accumulation steps"})
-    gradient_checkpointing: Optional[bool] = field(default=False, metadata={"help": "whether to use gradient checkpointing"})
+    gradient_checkpointing: Optional[bool] = field(default=True, metadata={"help": "whether to use gradient checkpointing"})
     
     group_by_length: Optional[bool] = field(default=False, metadata={"help": "whether to group by length"})
     packing: Optional[bool] = field(default=False, metadata={"help": "whether to use packing for SFTTrainer"})
 
-    lora_alpha: Optional[float] = field(default=16, metadata={"help": "the lora alpha parameter"})
+    lora_alpha: Optional[float] = field(default=8, metadata={"help": "the lora alpha parameter"})
     lora_dropout: Optional[float] = field(default=0.05, metadata={"help": "the lora dropout parameter"})
     lora_r: Optional[int] = field(default=8, metadata={"help": "the lora r parameter"})
 
@@ -57,21 +60,26 @@ script_args = parser.parse_args_into_dataclasses()[0]
 
 if script_args.group_by_length and script_args.packing:
     raise ValueError("Cannot use both packing and group by length")
-    
+
+print("Model Loading...")
 bnb_config = BitsAndBytesConfig(
-    load_in_4bit=True,
+    load_in_4bit=script_args.load_in_4bit,
+    load_in_8bit=not script_args.load_in_4bit, 
     bnb_4bit_quant_type="nf4",
+    bnb_4bit_use_double_quant=True,
     bnb_4bit_compute_dtype=torch.bfloat16,
 )
 
 base_model = AutoModelForCausalLM.from_pretrained(
     script_args.model_name,
     quantization_config=bnb_config,
-    device_map={"": Accelerator().local_process_index},
+    # device_map={"": PartialState().process_index},
+    device_map="auto",
     trust_remote_code=True,
     token=True,
 )
 base_model.config.use_cache = False
+print("Model Loaded.")
 
 peft_config = LoraConfig(
     r=script_args.lora_r,
@@ -102,7 +110,7 @@ training_args = TrainingArguments(
     optim=script_args.optimizer_type,
     bf16=True,
     remove_unused_columns=True,
-    run_name="sft_train",
+    run_name=f"sft_train_{script_args.model_name}",
     gradient_checkpointing=script_args.gradient_checkpointing,
 )
 
@@ -167,8 +175,8 @@ trainer.train()
 output_dir = os.path.join(script_args.output_dir, f"{script_args.model_name}-sft-final_checkpoint")
 trainer.save_model(output_dir)
 
-# output_dir = os.path.join(script_args.output_dir, f"{script_args.model_name}-final_checkpoint")
-# trainer.model.save_pretrained(output_dir)
+model = trainer.model.merge_and_unload()
+model.save_pretrained(output_dir)
 
 # Free memory for merging weights
 del base_model
@@ -177,7 +185,7 @@ if is_xpu_available():
 else:
     torch.cuda.empty_cache()
 
-# DeepSpeed Zero-3 is not compatible with `low_cpu_mem_usage=True` or with passing a `device_map`.
+# [Warning] DeepSpeed Zero-3 is not compatible with `low_cpu_mem_usage=True` or with passing a `device_map`.
 # Do this operation later manually
 # model = AutoPeftModelForCausalLM.from_pretrained(output_dir, device_map="auto", torch_dtype=torch.bfloat16)
 # model = model.merge_and_unload()

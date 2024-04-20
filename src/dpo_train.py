@@ -2,7 +2,7 @@
 
 import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
-os.environ["CUDA_VISIBLE_DEVICES"]="1,2,3,5,6,7"
+# os.environ["CUDA_VISIBLE_DEVICES"]="1,2,3,5,6,7"
 
 import torch
 from trl import DPOTrainer
@@ -38,7 +38,7 @@ class ScriptArguments:
     gradient_accumulation_steps: Optional[int] = field(default=4, metadata={"help": "the number of gradient accumulation steps"})
     gradient_checkpointing: Optional[bool] = field(default=True, metadata={"help": "whether to use gradient checkpointing"})
 
-    lora_alpha: Optional[float] = field(default=8, metadata={"help": "the lora alpha parameter"})
+    lora_alpha: Optional[float] = field(default=16, metadata={"help": "the lora alpha parameter"})
     lora_dropout: Optional[float] = field(default=0.05, metadata={"help": "the lora dropout parameter"})
     lora_r: Optional[int] = field(default=8, metadata={"help": "the lora r parameter"})
 
@@ -150,7 +150,8 @@ if __name__ == "__main__":
     model = AutoModelForCausalLM.from_pretrained(
         script_args.model_name_or_path,
         quantization_config=bnb_config,
-        device_map={"": Accelerator().local_process_index},
+        # device_map={"": Accelerator().local_process_index},
+        device_map="auto",
         trust_remote_code=True,
         token=True,
         low_cpu_mem_usage=True,
@@ -196,6 +197,7 @@ if __name__ == "__main__":
         optim=script_args.optimizer_type,
         remove_unused_columns=False,
         bf16=True,
+        run_name=f"dpo_train_{script_args.model_name_or_path}",
     )
 
     peft_config = LoraConfig(
@@ -233,7 +235,7 @@ if __name__ == "__main__":
     dpo_trainer.train()
     
     # 7. save
-    output_dir = os.path.join(script_args.output_dir, f"{script_args.model_name}-dpo-final_checkpoint")
+    output_dir = os.path.join(script_args.output_dir, f"{script_args.model_name_or_path}-dpo-final_checkpoint")
     dpo_trainer.save_model(output_dir)
 
     
