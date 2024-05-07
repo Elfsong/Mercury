@@ -3,7 +3,7 @@
 # 0. imports
 import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
-os.environ["CUDA_VISIBLE_DEVICES"]="0,2,3,4,5,6"
+os.environ["CUDA_VISIBLE_DEVICES"]="2,3"
 
 import torch
 import datasets
@@ -114,6 +114,7 @@ training_args = TrainingArguments(
     gradient_checkpointing=script_args.gradient_checkpointing,
 )
 
+print("Downloading dataset...")
 dataset = datasets.load_dataset(script_args.dataset_name)
 
 def prompt_generate(question_content, starter_code="", answer=""):

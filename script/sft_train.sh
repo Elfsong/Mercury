@@ -69,8 +69,8 @@ python ./src/sft_train.py \
 python ./src/sft_train.py \
     --model_name    codellama/CodeLlama-13b-hf    \
     --seq_length    2048   \
-    --max_steps     200     \
-    --per_device_train_batch_size 1 \
+    --max_steps     100     \
+    --per_device_train_batch_size 2 \
     --gradient_accumulation_steps 2 \
     --learning_rate 1e-4
 

@@ -2,7 +2,7 @@
 
 import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
-# os.environ["CUDA_VISIBLE_DEVICES"]="1,2,3,5,6,7"
+# os.environ["CUDA_VISIBLE_DEVICES"]="1"
 
 import torch
 from trl import DPOTrainer
@@ -32,6 +32,7 @@ class ScriptArguments:
     warmup_steps: Optional[int] = field(default=96, metadata={"help": "the number of warmup steps"})
     weight_decay: Optional[float] = field(default=0.05, metadata={"help": "the weight decay"})
     optimizer_type: Optional[str] = field(default="paged_adamw_32bit", metadata={"help": "the optimizer type"})
+    load_in_4bit: Optional[bool] = field(default=True, metadata={"help": "Model 4 bit quant"})
 
     per_device_train_batch_size: Optional[int] = field(default=2, metadata={"help": "train batch size per device"})
     per_device_eval_batch_size: Optional[int] = field(default=1, metadata={"help": "eval batch size per device"})
@@ -46,7 +47,7 @@ class ScriptArguments:
     max_length: Optional[int] = field(default=1500, metadata={"help": "the maximum sequence length"})
     max_steps: Optional[int] = field(default=800, metadata={"help": "max number of training steps"})
     logging_steps: Optional[int] = field(default=2, metadata={"help": "the logging frequency"})
-    save_steps: Optional[int] = field(default=100, metadata={"help": "the saving frequency"})
+    save_steps: Optional[int] = field(default=1000, metadata={"help": "the saving frequency"})
     eval_steps: Optional[int] = field(default=1000, metadata={"help": "the evaluation frequency"})
 
     output_dir: Optional[str] = field(default="/home/mingzhe/Projects/Mercury/checkpoints", metadata={"help": "the output directory"})
@@ -96,7 +97,7 @@ def prompt_generate(question_content, starter_code="", answer=""):
 
     prompt = ""
     # one-shot generation example
-    # prompt += get_example_prompt(examples_json)
+    prompt += get_example_prompt(examples_json)
     # code generation
     prompt += get_example_prompt({"question": question_content,"sample_code": starter_code,"answer": answer})
     
@@ -123,7 +124,7 @@ def get_code_paired(split="train", sanity_check: bool = False):
                 a_time = int(a["runtime"][:-2])
                 b_time = int(b["runtime"][:-2])
 
-                if b_time - a_time > 15:
+                if b_time - a_time > 20:
                     chosen_code, rejected_code = a["solution"], b["solution"]
                     
                     if (starter in chosen_code) and (starter in rejected_code):                    
@@ -141,7 +142,8 @@ if __name__ == "__main__":
     script_args = parser.parse_args_into_dataclasses()[0]
     
     bnb_config = BitsAndBytesConfig(
-        load_in_4bit=True,
+        load_in_4bit=script_args.load_in_4bit,
+        load_in_8bit=not script_args.load_in_4bit, 
         bnb_4bit_quant_type="nf4",
         bnb_4bit_compute_dtype=torch.bfloat16,
     )
@@ -172,11 +174,11 @@ if __name__ == "__main__":
     train_dataset = train_dataset.filter(lambda x: len(x["prompt"]) + len(x["chosen"]) <= script_args.max_length and len(x["prompt"]) + len(x["rejected"]) <= script_args.max_length)
     print(f"Train Dataset After: {len(train_dataset)}")
 
-    # 3. Load evaluation dataset
-    eval_dataset = get_code_paired(split="eval", sanity_check=script_args.sanity_check)
-    print(f"Eval Dataset Before: {len(eval_dataset)}")
-    eval_dataset = eval_dataset.filter(lambda x: len(x["prompt"]) + len(x["chosen"]) <= script_args.max_length and len(x["prompt"]) + len(x["rejected"]) <= script_args.max_length)
-    print(f"Eval Dataset After: {len(eval_dataset)}")
+    # # 3. Load evaluation dataset
+    # eval_dataset = get_code_paired(split="eval", sanity_check=script_args.sanity_check)
+    # print(f"Eval Dataset Before: {len(eval_dataset)}")
+    # eval_dataset = eval_dataset.filter(lambda x: len(x["prompt"]) + len(x["chosen"]) <= script_args.max_length and len(x["prompt"]) + len(x["rejected"]) <= script_args.max_length)
+    # print(f"Eval Dataset After: {len(eval_dataset)}")
 
     # 4. initialize training arguments:
     training_args = TrainingArguments(
@@ -224,7 +226,7 @@ if __name__ == "__main__":
         args=training_args,
         beta=script_args.beta,
         train_dataset=train_dataset,
-        eval_dataset=eval_dataset,
+        eval_dataset=train_dataset, # for faster loading, cause we don't evaluate here.
         tokenizer=tokenizer,
         peft_config=peft_config,
         max_prompt_length=script_args.max_prompt_length,
@@ -238,6 +240,5 @@ if __name__ == "__main__":
     output_dir = os.path.join(script_args.output_dir, f"{script_args.model_name_or_path}-dpo-final_checkpoint")
     dpo_trainer.save_model(output_dir)
 
-    
-    # output_dir = os.path.join(script_args.output_dir, "final_checkpoint")
-    # dpo_trainer.model.save_pretrained(output_dir)
+    model = dpo_trainer.model.merge_and_unload()
+    model.save_pretrained(output_dir)
