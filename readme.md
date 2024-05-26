@@ -12,8 +12,23 @@ To ensure the preservation of so-called 'anonymity', the dataset link will no lo
 I learned a big lesson that the meticulous nature of some reviewers is akin to that of 'detectives', taking pride in their ability to unearth authorship through a series of multi-hop reasoning:)
 
 ## How to use Mercury
+```shell
+# Option 1 (with BigCode):
+accelerate  launch --main_process_port 30003  main.py  \
+    --model bigcode/starcoder2-7b   \
+    --load_in_4bit   \
+    --max_length_generation 2048   \
+    --tasks mercury    \
+    --n_samples 5  \
+    --temperature 0.2  \
+    --batch_size 5   \
+    --allow_code_execution  \
+    --save_generations  \
+    --metric_output_path starcoder2-7b-mercury-result.json
+```
+
 ```python
-# set up OpenAI key if you are going to evaluate it (optional)
+# Option 2 (this library):
 import os
 os.environ["OPENAI_API_KEY"] = 'YOUR_OPENAI_KEY'
 
@@ -29,14 +44,3 @@ evaluator.generate(num_samples_per_task=1)
 evaluator.evaluate(num_samples_per_task=1)
 ```
 
-# Leaderboard (WIP 🚧)
-
-| Model Name           | Pass@1 | Beyond@1 |
-| -------------------- | ------ | -------- |
-| gpt-3.5-turbo-1106   | 0.8711 | 0.7214   |
-| gpt-4-1106-preview   | 0.7930 | 0.6555   |
-| deepseek-coder-6.7b  | 0.6875 | 0.5492   |
-| deepseek-coder-33b   | 0.7734 | 0.6951   |
-| CodeLlama-7b         | 0.3672 | 0.2798   |
-| CodeLlama-13b        | 0.4023 | 0.3091   |
-| CodeLlama-34b        | 0.5703 | 0.4505   |
