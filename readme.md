@@ -14,6 +14,7 @@ I learned a big lesson that the meticulous nature of some reviewers is akin to t
 ## How to use Mercury
 ```shell
 # Option 1 (with BigCode):
+# See https://github.com/bigcode-project/bigcode-evaluation-harness/tree/main/docs#mercury
 accelerate  launch --main_process_port 30003  main.py  \
     --model bigcode/starcoder2-7b   \
     --load_in_4bit   \
