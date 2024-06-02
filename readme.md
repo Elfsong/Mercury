@@ -1,4 +1,4 @@
-![mercury_benchmark](https://github.com/Elfsong/Mercury/assets/12135272/c730e703-208e-40c1-b8c3-9660943ddb1e)# Mercury 🪐
+# Mercury 🪐
 
 Welcome to Mercury: An Efficiency Benchmark for LLM Code Synthesis
 
