@@ -1,4 +1,4 @@
-# Mercury 🪐
+![mercury_benchmark](https://github.com/Elfsong/Mercury/assets/12135272/c730e703-208e-40c1-b8c3-9660943ddb1e)# Mercury 🪐
 
 Welcome to Mercury: An Efficiency Benchmark for LLM Code Synthesis
 
@@ -44,4 +44,8 @@ evaluator.generate(num_samples_per_task=1)
 # Evaluate code samples using the Mercury benchmark
 evaluator.evaluate(num_samples_per_task=1)
 ```
+## Benchmark Visualization
+![mercury_benchmark](https://github.com/Elfsong/Mercury/assets/12135272/4b4b2126-a06c-43dc-ae16-2848d9f77a69)
+
+
 
