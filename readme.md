@@ -3,13 +3,9 @@
 Welcome to Mercury: An Efficiency Benchmark for LLM Code Synthesis
 
 * Mercury is the first code efficiency benchmark designed for code synthesis tasks.
+* It consists of 1,889 programming tasks covering diverse difficulty levels, along with test case generators that produce unlimited cases for comprehensive evaluation.
 
-* It consists of 1,889 programming tasks covering diverse difficulty levels, along with test case generators that produce unlimited cases for comprehensive evaluation. 
-
-## Important Update
-To ensure the preservation of so-called 'anonymity', the dataset link will no longer be available on this page prior to the formal paper acceptance. Sorry for any inconvenience this may cause. Researchers are encouraged to find the dataset independently.
-
-I learned a big lesson that the meticulous nature of some reviewers is akin to that of 'detectives', taking pride in their ability to unearth authorship through a series of multi-hop reasoning:)
+> Now Mercury is available on [BigCode](https://github.com/bigcode-project/bigcode-evaluation-harness/tree/main/docs#mercury)🌟
 
 ## How to use Mercury
 ```shell
