@@ -51,6 +51,8 @@ evaluator.evaluate(num_samples_per_task=1)
   journal={arXiv preprint arXiv:2402.07844},
   year={2024}
 }
-
 ```
+
+## Questions?
+Should you have any questions regarding this paper, please feel free to email us (mingzhe@nus.edu.sg). Thank you for your attention!
 
