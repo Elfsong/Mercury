@@ -1,11 +1,15 @@
-# Mercury 🪐
+# Mercury: A Code Efficiency Benchmark for Code Large Language Models 🪐
 
-Welcome to Mercury: An Efficiency Benchmark for LLM Code Synthesis
-
+* Welcome to Mercury!
 * Mercury is the first code efficiency benchmark designed for code synthesis tasks.
 * It consists of 1,889 programming tasks covering diverse difficulty levels, along with test case generators that produce unlimited cases for comprehensive evaluation.
 
-> Mercury is now available on [BigCode](https://github.com/bigcode-project/bigcode-evaluation-harness/tree/main/docs#mercury)🌟
+> [June 24, 2024] We are currently working on the [Multilingual Mercury](https://huggingface.co/datasets/Elfsong/Mercury_Multilingual) 🚧
+
+> [May 26, 2024] Mercury is now available on [BigCode](https://github.com/bigcode-project/bigcode-evaluation-harness/tree/main/docs#mercury) 🌟
+
+## Have a quick look at HuggingFace
+We publish and maintain our datasets at [Mercury@HF](https://huggingface.co/datasets/Elfsong/Mercury)
 
 ## How to use Mercury
 ```shell
