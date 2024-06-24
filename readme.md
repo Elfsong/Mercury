@@ -8,10 +8,10 @@
 
 > [May 26, 2024] Mercury is now available on [BigCode](https://github.com/bigcode-project/bigcode-evaluation-harness/tree/main/docs#mercury) 🌟
 
-## Have a quick look at HuggingFace
+## Mercury Datasets Access
 We publish and maintain our datasets at [Mercury@HF](https://huggingface.co/datasets/Elfsong/Mercury)
 
-## How to use Mercury
+## How to use Mercury Evaluation
 ```shell
 # Option 1 (with BigCode):
 # See https://github.com/bigcode-project/bigcode-evaluation-harness/tree/main/docs#mercury
@@ -44,6 +44,7 @@ evaluator.generate(num_samples_per_task=1)
 # Evaluate code samples using the Mercury benchmark
 evaluator.evaluate(num_samples_per_task=1)
 ```
+
 ## Benchmark Visualization
 ![mercury_benchmark](https://github.com/Elfsong/Mercury/assets/12135272/4b4b2126-a06c-43dc-ae16-2848d9f77a69)
 
