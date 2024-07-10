@@ -6,12 +6,12 @@
 
 > [July, 10, 2024] We are building [**CodeArena**](https://github.com/Elfsong/CodeArena) now for more efficient Code LLMs evaluation!
 
-> [June 24, 2024] We are currently working on the [Multilingual Mercury](https://huggingface.co/datasets/Elfsong/Mercury_Multilingual) 🚧
+> [June 24, 2024] We are currently working on the [**Multilingual Mercury**](https://huggingface.co/datasets/Elfsong/Mercury_Multilingual) 🚧
 
-> [May 26, 2024] Mercury is now available on [BigCode](https://github.com/bigcode-project/bigcode-evaluation-harness/tree/main/docs#mercury) 🌟
+> [May 26, 2024] Mercury is now available on [**BigCode**](https://github.com/bigcode-project/bigcode-evaluation-harness/tree/main/docs#mercury) 🌟
 
 ## Mercury Datasets Access
-We publish and maintain our datasets at [Mercury@HF](https://huggingface.co/datasets/Elfsong/Mercury)
+We publish and maintain our datasets at [**Mercury@HF**](https://huggingface.co/datasets/Elfsong/Mercury)
 
 ## How to use Mercury Evaluation
 ```shell
