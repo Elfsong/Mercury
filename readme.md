@@ -4,7 +4,7 @@
 * Mercury is the first code efficiency benchmark designed for code synthesis tasks.
 * It consists of 1,889 programming tasks covering diverse difficulty levels, along with test case generators that produce unlimited cases for comprehensive evaluation.
 
-> [July, 10, 2024] We are building [**CodeArena**](https://codellm.club/about/) now for more efficient Code LLMs evaluation!
+> [July, 10, 2024] We are building [**Code LLM Club**](https://codellm.club/about/) now for more efficient Code LLMs evaluation!
 
 > [June 24, 2024] We are currently working on the [**Multilingual Mercury**](https://huggingface.co/datasets/Elfsong/Mercury_Multilingual) 🚧
 
