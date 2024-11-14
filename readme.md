@@ -4,7 +4,7 @@
 * Mercury is the first code efficiency benchmark designed for code synthesis tasks.
 * It consists of 1,889 programming tasks covering diverse difficulty levels, along with test case generators that produce unlimited cases for comprehensive evaluation.
 
-> [October 8, 2024] Mercury has been accepted to [**NeurIPS 2024**](https://neurips.cc/virtual/2024/poster/97452)
+> [October 8, 2024] Mercury has been accepted to [**NeurIPS 2024**](https://neurips.cc/virtual/2024/poster/97452) 🌟
 > 
 > [September 20, 2024] We release a **way bigger** dataset [**Venus**](https://github.com/Elfsong/venus), which supports Python3 and C++. It also provides **Memory** measurement other than **Time**.
 
