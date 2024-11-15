@@ -57,8 +57,8 @@ evaluator.evaluate(num_samples_per_task=1)
 ## Citation
 ```
 @article{du2024mercury,
-  title={Mercury: An Efficiency Benchmark for LLM Code Synthesis},
-  author={Du, Mingzhe and Luu, Anh Tuan and Ji, Bin and Ng, See-Kiong},
+  title={Mercury: A code efficiency benchmark for code large language models},
+  author={Du, Mingzhe and Luu, Anh Tuan and Ji, Bin and Liu, Qian and Ng, See-Kiong},
   journal={arXiv preprint arXiv:2402.07844},
   year={2024}
 }
