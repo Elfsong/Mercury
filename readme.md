@@ -56,10 +56,10 @@ evaluator.evaluate(num_samples_per_task=1)
 
 ## Citation
 ```
-@article{du2024mercury,
+@inproceedings{du2024mercury,
   title={Mercury: A code efficiency benchmark for code large language models},
   author={Du, Mingzhe and Luu, Anh Tuan and Ji, Bin and Liu, Qian and Ng, See-Kiong},
-  journal={arXiv preprint arXiv:2402.07844},
+  booktitle={The Thirty-eight Conference on Neural Information Processing Systems Datasets and Benchmarks Track},
   year={2024}
 }
 ```
