@@ -6,7 +6,7 @@
 
 > [October 8, 2024] Mercury has been accepted to [**NeurIPS 2024**](https://neurips.cc/virtual/2024/poster/97452) 🌟
 > 
-> [September 20, 2024] We release a **way bigger** dataset [**Venus**](https://github.com/Elfsong/venus), which supports Python3 and C++. It also provides **Memory** measurement other than **Time**.
+> [September 20, 2024] We release a **way bigger** dataset [**Venus**](https://github.com/Elfsong/venus), which supports more languages. It also provides **Memory** measurement other than **Time**.
 
 > [July 10, 2024] We are building [**Code Arena**](https://codearena.online/about/) now for more efficient Code LLMs evaluation!
 
