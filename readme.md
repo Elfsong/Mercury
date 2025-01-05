@@ -1,5 +1,7 @@
 # Mercury: A Code Efficiency Benchmark for Code Large Language Models 🪐
 
+[![arXiv](https://img.shields.io/badge/arXiv-2402.07844-b31b1b.svg)](https://arxiv.org/abs/2402.07844)
+
 * Welcome to Mercury!
 * Mercury is the first code efficiency benchmark designed for code synthesis tasks.
 * It consists of 1,889 programming tasks covering diverse difficulty levels, along with test case generators that produce unlimited cases for comprehensive evaluation.
