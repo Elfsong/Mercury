@@ -1,6 +1,7 @@
 # Mercury: A Code Efficiency Benchmark for Code Large Language Models 🪐
 
 [![arXiv](https://img.shields.io/badge/arXiv-2402.07844-b31b1b.svg)](https://arxiv.org/abs/2402.07844)
+[![HuggingFace](https://img.shields.io/badge/Hugging%20Face-Elfsong/Mercury-ffd21e.svg)](https://arxiv.org/abs/2402.07844)
 
 * Welcome to Mercury!
 * Mercury is the first code efficiency benchmark designed for code synthesis tasks.
