@@ -62,8 +62,8 @@ evaluator.evaluate(num_samples_per_task=1)
 ## Citation
 ```
 @article{du2024mercury, 
-    title={Mercury: A Code Efficiency Benchmark for Code Large Language Models}, volume={37}, 
-    url={https://proceedings.neurips.cc/paper_files/paper/2024/file/1df1df43b58845650b8dada00fca9772-Paper-Datasets_and_Benchmarks_Track.pdf}, 
+    title={Mercury: A Code Efficiency Benchmark for Code Large Language Models},
+    volume={37}, 
     journal={Advances in Neural Information Processing Systems},
     author={Du, Mingzhe and Tuan, Luu Anh and Ji, Bin and Liu, Qian and Ng, See-Kiong}, 
     year={2024}, 
