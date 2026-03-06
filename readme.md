@@ -6,11 +6,13 @@
 
 
 * Welcome to Mercury!
-* Mercury is the first code efficiency benchmark designed for code synthesis tasks.
+* Mercury is the first code efficiency benchmark designed for LLM code synthesis tasks.
 * It consists of 1,889 programming tasks covering diverse difficulty levels, along with test case generators that produce unlimited cases for comprehensive evaluation.
 
+> [March 6, 2026] Release [**Mercury_Eval**](https://github.com/Elfsong/Mercury_Eval) for Mercury Evaluation!
+
 > [October 8, 2024] Mercury has been accepted to [**NeurIPS 2024**](https://neurips.cc/virtual/2024/poster/97452) 🌟
-> 
+
 > [September 20, 2024] We release a **way bigger** dataset [**Venus**](https://github.com/Elfsong/venus), which supports more languages. It also provides **Memory** measurement other than **Time**.
 
 > [July 10, 2024] We are building [**Code Arena**](https://codearena.online/about/) now for more efficient Code LLMs evaluation!
@@ -22,7 +24,21 @@
 ## Mercury Datasets Access
 We publish and maintain our datasets at [**Mercury@HF**](https://huggingface.co/datasets/Elfsong/Mercury)
 
+![Mercury_Eval](./example.png)
+
 ## How to use Mercury Evaluation
+```shell
+# Option 0 (Mercury Evaluation)
+git clone https://github.com/Elfsong/Mercury_Eval.git
+cd Mercury_Eval
+uv sync --extra all
+
+# Evaluate with a specific model (backend auto-detected)
+mercury-eval gpt-4.1                                    # full evaluation
+mercury-eval gemini-2.5-pro --timeout 120               # timeout
+mercury-eval Qwen/Qwen2.5-Coder-32B-Instruct --limit 20 # tasks limit
+```
+
 ```shell
 # Option 1 (with BigCode):
 # See https://github.com/bigcode-project/bigcode-evaluation-harness/tree/main/docs#mercury
